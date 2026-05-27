@@ -1,3 +1,5 @@
+-- USERS AND PROFILES
+
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -10,6 +12,8 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- CUSTOMER PROFILE
+
 CREATE TABLE customer_profiles (
     customer_id BIGINT PRIMARY KEY
     REFERENCES users(user_id),
@@ -18,6 +22,8 @@ CREATE TABLE customer_profiles (
     preferred_address_id BIGINT,
     date_of_birth DATE
 );
+
+-- SELLER PROFILE
 
 CREATE TABLE seller_profiles (
     seller_id BIGINT PRIMARY KEY
@@ -35,6 +41,8 @@ CREATE TABLE seller_profiles (
         ('pending','verified','rejected')
     )
 );
+
+-- ADDRESSES
 
 CREATE TABLE addresses (
     address_id BIGSERIAL PRIMARY KEY,
@@ -57,6 +65,8 @@ CREATE TABLE addresses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- CATEGORIES
+
 CREATE TABLE categories (
     category_id BIGSERIAL PRIMARY KEY,
 
@@ -69,6 +79,8 @@ CREATE TABLE categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- BRANDS
+
 CREATE TABLE brands (
     brand_id BIGSERIAL PRIMARY KEY,
 
@@ -78,6 +90,8 @@ CREATE TABLE brands (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- PRODUCTS
 
 CREATE TABLE products (
     product_id BIGSERIAL PRIMARY KEY,
@@ -113,6 +127,8 @@ CREATE TABLE products (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- PRODUCT CATEGORIES
+
 CREATE TABLE product_categories (
     product_id BIGINT
     REFERENCES products(product_id)
@@ -125,6 +141,8 @@ CREATE TABLE product_categories (
     PRIMARY KEY(product_id, category_id)
 );
 
+-- PRODUCT IMAGES
+
 CREATE TABLE product_images (
     image_id BIGSERIAL PRIMARY KEY,
 
@@ -136,6 +154,8 @@ CREATE TABLE product_images (
 
     sort_order INT DEFAULT 1
 );
+
+-- INVENTORY AND WAREHOUSES
 
 CREATE TABLE warehouses (
     warehouse_id BIGSERIAL PRIMARY KEY,
@@ -171,6 +191,8 @@ CREATE TABLE inventory (
     UNIQUE(product_id, warehouse_id)
 );
 
+-- STOCK MOVEMENTS
+
 CREATE TABLE stock_movements (
     movement_id BIGSERIAL PRIMARY KEY,
 
@@ -190,6 +212,8 @@ CREATE TABLE stock_movements (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- CARTS, ORDERS, AND PAYMENTS
 
 CREATE TABLE carts (
     cart_id BIGSERIAL PRIMARY KEY,
@@ -330,6 +354,8 @@ CREATE TABLE payment_transactions (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- INVOICES, COUPONS, REVIEWS, AND RETURNS
 
 CREATE TABLE invoices (
     invoice_id BIGSERIAL PRIMARY KEY,
