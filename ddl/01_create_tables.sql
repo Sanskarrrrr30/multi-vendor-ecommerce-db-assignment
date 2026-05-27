@@ -191,3 +191,294 @@ CREATE TABLE stock_movements (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE carts (
+    cart_id BIGSERIAL PRIMARY KEY,
+
+    customer_id BIGINT NOT NULL
+    REFERENCES customer_profiles(customer_id)
+    ON DELETE CASCADE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    expires_at TIMESTAMP
+);
+
+CREATE TABLE cart_items (
+    cart_item_id BIGSERIAL PRIMARY KEY,
+
+    cart_id BIGINT NOT NULL
+    REFERENCES carts(cart_id)
+    ON DELETE CASCADE,
+
+    product_id BIGINT NOT NULL
+    REFERENCES products(product_id)
+    ON DELETE CASCADE,
+
+    quantity INT NOT NULL
+    CHECK (quantity > 0),
+
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders (
+    order_id BIGSERIAL PRIMARY KEY,
+
+    customer_id BIGINT NOT NULL
+    REFERENCES customer_profiles(customer_id),
+
+    order_status VARCHAR(20)
+    DEFAULT 'pending'
+    CHECK (
+        order_status IN (
+            'pending',
+            'confirmed',
+            'shipped',
+            'delivered',
+            'cancelled'
+        )
+    ),
+
+    total_amount NUMERIC(12,2)
+    NOT NULL
+    CHECK (total_amount >= 0),
+
+    shipping_address_id BIGINT
+    REFERENCES addresses(address_id),
+
+    billing_address_id BIGINT
+    REFERENCES addresses(address_id),
+
+    coupon_id BIGINT,
+
+    placed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    delivered_at TIMESTAMP
+);
+
+CREATE TABLE order_items (
+    order_item_id BIGSERIAL PRIMARY KEY,
+
+    order_id BIGINT NOT NULL
+    REFERENCES orders(order_id)
+    ON DELETE CASCADE,
+
+    product_id BIGINT NOT NULL
+    REFERENCES products(product_id),
+
+    seller_id BIGINT NOT NULL
+    REFERENCES seller_profiles(seller_id),
+
+    quantity INT NOT NULL
+    CHECK (quantity > 0),
+
+    unit_price NUMERIC(10,2)
+    NOT NULL
+    CHECK (unit_price > 0),
+
+    subtotal NUMERIC(12,2)
+    GENERATED ALWAYS AS
+    (quantity * unit_price) STORED
+);
+
+CREATE TABLE payments (
+    payment_id BIGSERIAL PRIMARY KEY,
+
+    order_id BIGINT NOT NULL
+    REFERENCES orders(order_id)
+    ON DELETE CASCADE,
+
+    payment_method VARCHAR(50),
+
+    payment_status VARCHAR(20)
+    DEFAULT 'pending'
+    CHECK (
+        payment_status IN (
+            'pending',
+            'success',
+            'failed',
+            'refunded'
+        )
+    ),
+
+    amount NUMERIC(12,2)
+    NOT NULL,
+
+    gateway_reference VARCHAR(255),
+
+    paid_at TIMESTAMP
+);
+
+CREATE TABLE payment_transactions (
+    transaction_id BIGSERIAL PRIMARY KEY,
+
+    payment_id BIGINT NOT NULL
+    REFERENCES payments(payment_id)
+    ON DELETE CASCADE,
+
+    transaction_status VARCHAR(20)
+    CHECK (
+        transaction_status IN (
+            'initiated',
+            'success',
+            'failed'
+        )
+    ),
+
+    transaction_reference VARCHAR(255),
+
+    response_message TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE invoices (
+    invoice_id BIGSERIAL PRIMARY KEY,
+
+    order_id BIGINT UNIQUE NOT NULL
+    REFERENCES orders(order_id)
+    ON DELETE CASCADE,
+
+    invoice_number VARCHAR(100)
+    UNIQUE NOT NULL,
+
+    invoice_date TIMESTAMP
+    DEFAULT CURRENT_TIMESTAMP,
+
+    total_amount NUMERIC(12,2)
+    NOT NULL
+);
+
+CREATE TABLE coupons (
+    coupon_id BIGSERIAL PRIMARY KEY,
+
+    coupon_code VARCHAR(50)
+    UNIQUE NOT NULL,
+
+    discount_type VARCHAR(20)
+    CHECK (
+        discount_type IN (
+            'flat',
+            'percentage'
+        )
+    ),
+
+    discount_value NUMERIC(10,2)
+    NOT NULL,
+
+    minimum_order_value NUMERIC(10,2)
+    DEFAULT 0,
+
+    max_uses INT DEFAULT 100,
+
+    used_count INT DEFAULT 0,
+
+    expires_at TIMESTAMP NOT NULL,
+
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE coupon_usage (
+    usage_id BIGSERIAL PRIMARY KEY,
+
+    coupon_id BIGINT NOT NULL
+    REFERENCES coupons(coupon_id)
+    ON DELETE CASCADE,
+
+    customer_id BIGINT NOT NULL
+    REFERENCES customer_profiles(customer_id)
+    ON DELETE CASCADE,
+
+    order_id BIGINT NOT NULL
+    REFERENCES orders(order_id)
+    ON DELETE CASCADE,
+
+    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE reviews (
+    review_id BIGSERIAL PRIMARY KEY,
+
+    product_id BIGINT NOT NULL
+    REFERENCES products(product_id)
+    ON DELETE CASCADE,
+
+    customer_id BIGINT NOT NULL
+    REFERENCES customer_profiles(customer_id)
+    ON DELETE CASCADE,
+
+    review_title VARCHAR(255),
+
+    review_body TEXT,
+
+    verified_purchase BOOLEAN DEFAULT FALSE,
+
+    helpful_votes INT DEFAULT 0,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ratings (
+    rating_id BIGSERIAL PRIMARY KEY,
+
+    review_id BIGINT NOT NULL
+    REFERENCES reviews(review_id)
+    ON DELETE CASCADE,
+
+    stars INT NOT NULL
+    CHECK (stars BETWEEN 1 AND 5),
+
+    moderation_status VARCHAR(20)
+    DEFAULT 'pending'
+    CHECK (
+        moderation_status IN (
+            'pending',
+            'approved',
+            'rejected'
+        )
+    )
+);
+
+CREATE TABLE returns (
+    return_id BIGSERIAL PRIMARY KEY,
+
+    order_item_id BIGINT NOT NULL
+    REFERENCES order_items(order_item_id)
+    ON DELETE CASCADE,
+
+    return_reason TEXT NOT NULL,
+
+    item_condition VARCHAR(50),
+
+    return_status VARCHAR(20)
+    DEFAULT 'requested'
+    CHECK (
+        return_status IN (
+            'requested',
+            'approved',
+            'rejected',
+            'completed'
+        )
+    ),
+
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE refunds (
+    refund_id BIGSERIAL PRIMARY KEY,
+
+    return_id BIGINT NOT NULL
+    REFERENCES returns(return_id)
+    ON DELETE CASCADE,
+
+    payment_id BIGINT NOT NULL
+    REFERENCES payments(payment_id)
+    ON DELETE CASCADE,
+
+    refund_amount NUMERIC(12,2)
+    NOT NULL,
+
+    refund_method VARCHAR(50),
+
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
